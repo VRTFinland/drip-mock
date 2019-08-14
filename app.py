@@ -17,7 +17,7 @@ EVENTS_COUNTER = 0
 
 @app.route("/v2/<account_id>", methods=["GET"])
 def hello_world(account_id):
-    return "Hello World!"
+    return "Woot woot"
 
 
 @app.route("/v2/<account_id>/subscribers", methods=["GET", "POST"])
@@ -66,12 +66,6 @@ def event_actions(account_id):
 def generate_post_response(subscriber):
     return {
         "links": {"subscribers.account": "https://api.getdrip.com/v2/accounts/{subscribers.account}"},
-        # "meta": {
-        #     "page": 1,
-        #     "count": len(DATA["subscribers"].keys()),
-        #     "total_pages": 1,
-        #     "total_count": len(DATA["subscribers"])
-        # },
         "subscribers": [subscriber]
     }
 
