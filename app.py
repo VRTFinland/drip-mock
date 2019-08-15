@@ -8,25 +8,29 @@ from subscriber_mock_data import (
 )
 
 app = Flask(__name__)
-DATA = {
-    "events": [],
-    "subscribers": {}
-}
-SUBSCRIBER_EMAIL_ID_MAP = {}
+
+
+class DripData:
+    def __init__(self):
+        self.events = []
+        self.subscribers = {}
+        self.email_id_map = {}
+
+    def reset_data(self):
+        self.events = []
+        self.subscribers = {}
+        self.email_id_map = {}
+
+
+dripData = DripData()
 
 BASE_URL = os.environ.get("BASE_URL", "http://0.0.0.0:5000")
 
 
-def reset_data():
-    DATA.events = []
-    DATA.subscribers = {}
-    for key in SUBSCRIBER_EMAIL_ID_MAP:
-        del SUBSCRIBER_EMAIL_ID_MAP[key]
-
-
 @app.route("/reset", methods=["POST"])
 def reset():
-    reset_data()
+    dripData.reset_data()
+    return Response(None, status=204)
 
 
 @app.route("/v2/<account_id>", methods=["GET"])
@@ -36,8 +40,8 @@ def hello_world(account_id):
 
 @app.route("/v2/<account_id>/subscribers/<subscriber_id>/", methods=["GET"])
 def subscriber_handler(account_id, subscriber_id):
-    if subscriber_id in DATA["subscribers"]:
-        return DATA["subscribers"][subscriber_id]
+    if subscriber_id in dripData.subscribers:
+        return dripData.subscribers[subscriber_id]
 
     return None
 
@@ -49,20 +53,20 @@ def subscribers_handler(account_id):
             "links": {"subscribers.account": urljoin(BASE_URL, "/v2/accounts/{subscribers.account}")},
             "meta": {
                 "page": 1,
-                "count": len(DATA["subscribers"].keys()),
+                "count": len(dripData.subscribers.keys()),
                 "total_pages": 1,
-                "total_count": len(DATA["subscribers"])
+                "total_count": len(dripData.subscribers)
             },
-            "subscribers": [subscriber for subscriber in DATA["subscribers"].values()]
+            "subscribers": [subscriber for subscriber in dripData.subscribers.values()]
         }
 
     elif request.method == "POST":
         data = request.json.get("subscribers", [])[0]
         email = data.get("email")
-        subscriber_id = SUBSCRIBER_EMAIL_ID_MAP.get(email)
+        subscriber_id = dripData.email_id_map.get(email)
 
         if subscriber_id:
-            subscriber = DATA["subscribers"][subscriber_id]
+            subscriber = dripData.subscribers[subscriber_id]
             for key in subscriber_template.keys():
                 subscriber[key] = data.get(key, subscriber.get(key, subscriber_template.get(key)))
         else:
@@ -72,28 +76,30 @@ def subscribers_handler(account_id):
                 subscriber[key] = data.get(key, subscriber_template[key])
             subscriber["id"] = subscriber_id
             subscriber["href"] = urljoin(BASE_URL, f"v2/{account_id}/subscribers/{subscriber_id}")
-            DATA["subscribers"][subscriber_id] = subscriber
-            SUBSCRIBER_EMAIL_ID_MAP[subscriber.get("email")] = subscriber_id
+            dripData.subscribers[subscriber_id] = subscriber
+            dripData.email_id_map[email] = subscriber_id
 
         return generate_post_response(subscriber)
 
 
 @app.route("/v2/<account_id>/events", methods=["POST"])
 def events(account_id):
-    DATA["events"].append(request.json["events"][0])
+    dripData.events.append(request.json["events"][0])
     return Response(None, status=204)
 
 
 @app.route("/v2/<account_id>/event_actions", methods=["GET"])
 def event_actions(account_id):
+    actions = [event.get("action") for event in dripData.events]
+
     return {
         "meta": {
-            "count": 2,
+            "count": len(actions),
             "page": 1,
-            "total_count": 2,
+            "total_count": len(actions),
             "total_pages": 1
         },
-        "event_actions": [event.get("action", "Unknown") for event in DATA["events"]]
+        "event_actions": actions
     }
 
 
