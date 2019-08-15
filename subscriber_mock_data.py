@@ -1,6 +1,6 @@
 subscriber_template = {
-    "id": "cuy36rzagy6sauxvowko",
-    "href": "https://api.getdrip.com/v2/2289396/subscribers/cuy36rzagy6sauxvowko",
+    "id": "",
+    "href": "",
     "status": "active",
     "email": "personnel@vrt.fi",
     "first_name": "Personnel",
