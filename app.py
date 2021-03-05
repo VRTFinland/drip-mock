@@ -13,11 +13,13 @@ app = Flask(__name__)
 class DripData:
     def __init__(self):
         self.events = []
+        self.tags = []
         self.subscribers = {}
         self.email_id_map = {}
 
     def reset_data(self):
         self.events = []
+        self.tags = []
         self.subscribers = {}
         self.email_id_map = {}
 
@@ -38,11 +40,20 @@ def hello_world(account_id):
     return "Woot woot"
 
 
-@app.route("/v2/<account_id>/subscribers/<subscriber_id>/", methods=["GET"])
+@app.route("/v2/<account_id>/subscribers/<subscriber_id>", methods=["GET"])
 def subscriber_handler(account_id, subscriber_id):
-    if subscriber_id in dripData.subscribers:
-        return dripData.subscribers[subscriber_id]
-
+    subscriber = dripData.subscribers[subscriber_id]
+    if subscriber is not None:
+        return {
+            "links": {"subscribers.account": urljoin(BASE_URL, "/v2/accounts/{subscribers.account}")},
+            "meta": {
+                "page": 1,
+                "count": 1,
+                "total_pages": 1,
+                "total_count": 1
+            },
+            "subscribers": [subscriber]
+        }
     return None
 
 
@@ -87,6 +98,35 @@ def events(account_id):
     dripData.events.append(request.json["events"][0])
     return Response(None, status=204)
 
+@app.route("/v2/<account_id>/tags", methods=["GET", "POST"])
+def tags(account_id):
+    if request.method == "GET":
+        return {
+            "tags" : dripData.tags
+        }
+    elif request.method == "POST":
+        data = request.json.get("tags", [])[0]
+        email = data.get("email")
+        new_tag = data.get("tag")
+        subscriber_id = dripData.email_id_map.get(email)
+        if subscriber_id:
+            subscriber = dripData.subscribers[subscriber_id]
+            subscriber_tags = subscriber["tags"]
+            if new_tag not in subscriber_tags:
+                subscriber_tags.append(new_tag)
+            if new_tag not in dripData.tags:
+                dripData.tags.append(new_tag)
+        return Response(response={}, status=201)
+
+@app.route("/v2/<account_id>/subscribers/<email>/tags/<tag_name>", methods=["DELETE"])
+def delete_tag(account_id, email, tag_name):
+    subscriber_id = dripData.email_id_map.get(email)
+    if subscriber_id:
+        subscriber = dripData.subscribers[subscriber_id]
+        subscriber_tags = subscriber["tags"]
+        if tag_name in subscriber_tags:
+            subscriber_tags.remove(tag_name)
+    return Response(None, status=204)
 
 @app.route("/v2/<account_id>/event_actions", methods=["GET"])
 def event_actions(account_id):
