@@ -123,7 +123,7 @@ def tags(account_id):
                 if new_tag not in dripData.tags:
                     dripData.tags.append(new_tag)
             return Response(response={}, status=201)
-        return Response(None, status=402)
+        return Response(None, status=400)
 
 
 @app.route("/v2/<account_id>/subscribers/<email>/tags/<tag_name>", methods=["DELETE"])
