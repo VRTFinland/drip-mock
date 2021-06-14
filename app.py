@@ -47,18 +47,17 @@ def subscriber_handler(account_id, subscriber_id_or_email):
     is_email = re.search(EMAIL_REGEX,subscriber_id_or_email)
     subscriber_id = dripData.email_id_map.get(subscriber_id_or_email) if is_email else subscriber_id_or_email
     subscriber = dripData.subscribers.get(subscriber_id, None)
-    if subscriber is not None:
-        return {
-            "links": {"subscribers.account": urljoin(BASE_URL, "/v2/accounts/{subscribers.account}")},
-            "meta": {
-                "page": 1,
-                "count": 1,
-                "total_pages": 1,
-                "total_count": 1
-            },
-            "subscribers": [subscriber]
-        }
-    return None
+    subscribers = [subscriber] if subscriber is not None else []
+    return {
+        "links": {"subscribers.account": urljoin(BASE_URL, "/v2/accounts/{subscribers.account}")},
+        "meta": {
+            "page": 1,
+            "count": 1,
+            "total_pages": 1,
+            "total_count": 1
+        },
+        "subscribers": subscribers
+    }
 
 
 @app.route("/v2/<account_id>/subscribers", methods=["GET", "POST"])
